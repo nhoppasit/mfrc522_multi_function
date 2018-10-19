@@ -104,7 +104,7 @@ void DumpMifareUltralightToSerial()
 		byteCount = sizeof(buffer);
 		status = rfid.MIFARE_Read(page, buffer, &byteCount);		
 		if (status != MFRC522::StatusCode::STATUS_OK) {
-			Serial.print(F("----"));
+			Serial.print(F("----------------"));
 		}
 		else
 		{
