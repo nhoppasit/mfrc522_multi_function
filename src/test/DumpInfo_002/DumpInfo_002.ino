@@ -89,17 +89,17 @@ void rfidDump()
 		else
 			Serial.print(rfid.uid.uidByte[i], HEX);
 	}
-	Serial.print(0x1C);
+	Serial.print((char)0x1C);
 	
 	// Print content
 	DumpMifareUltralightToSerial();
-	Serial.print(0x1C);
+	Serial.print((char)0x1C);
 	
 	// Finalize rfid
 	rfid.PICC_HaltA();
 		
 	// Finalize message
-	Serial.print(0x03);
+	Serial.print((char)0x03);
 }
 
 void DumpMifareUltralightToSerial() 
