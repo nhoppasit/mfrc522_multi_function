@@ -43,36 +43,90 @@ MFRC522 rfid(SS_PIN, RST_PIN);  // Create MFRC522 instance
 
 void setup()
 {
-  Serial.begin(9600);		// Initialize serial communications with the PC
-  while (!Serial);		// Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
-  SPI.begin();			// Init SPI bus
-  rfid.PCD_Init();		// Init MFRC522
-  rfid.PCD_SetAntennaGain(rfid.RxGain_max); //Set Antenna Gain to Max- this will increase reading distance
-  rfid.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
-  Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
+	Serial.begin(9600);		// Initialize serial communications with the PC
+	while (!Serial);		// Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
+	SPI.begin();			// Init SPI bus
+	rfid.PCD_Init();		// Init MFRC522
+	rfid.PCD_SetAntennaGain(rfid.RxGain_max); //Set Antenna Gain to Max- this will increase reading distance
+	rfid.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
+	Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
 }
 
 void loop()
 {
-  // Look for new cards
-  if ( ! rfid.PICC_IsNewCardPresent()) {
-    return;
-  }
+	// ---------------------------------------------
+	// Validation
+	// ---------------------------------------------
+	// Look for new cards
+	if ( ! rfid.PICC_IsNewCardPresent()) 
+	{
+		return;
+	}
 
-  // Select one of the cards
-  if ( ! rfid.PICC_ReadCardSerial()) {
-    return;
-  }
+	// Select one of the cards
+	if ( ! rfid.PICC_ReadCardSerial()) 
+	{
+		return;
+	}
 
-  for (int i = 0; i < rfid.uid.size; i++)
-  {
-    if (rfid.uid.uidByte[i] < 0x10)
-      Serial.print("0");
-    else
-      Serial.print(rfid.uid.uidByte[i], HEX);
-  }
-  Serial.println();
-
+	// ---------------------------------------------
+	// Processes
+	// ---------------------------------------------	
+	// Print UID
+	for (int i = 0; i < rfid.uid.size; i++)
+	{
+		if (rfid.uid.uidByte[i] < 0x10)
+			Serial.print("0");
+		else
+			Serial.print(rfid.uid.uidByte[i], HEX);
+	}
+	Serial.println();
+	
+	// Print content
+	DumpMifareUltralightToSerial();
+	Serial.println();
+	
+	// Finalize rfid
+	rfid.PICC_HaltA();
+	Serial.println();
 }
 
-
+void DumpMifareUltralightToSerial() 
+{
+	MFRC522::StatusCode status;
+	byte byteCount;
+	byte buffer[18];
+	byte i;
+	
+	Serial.println(F("Page  0  1  2  3"));
+	// Try the mpages of the original Ultralight. Ultralight C has more pages.
+	for (byte page = 0; page < 16; page +=4) { // Read returns data for 4 pages at a time.
+		// Read pages
+		byteCount = sizeof(buffer);
+		status = rfid.MIFARE_Read(page, buffer, &byteCount);
+		if (status != MFRC522::StatusCode::STATUS_OK) {
+			Serial.print(F("MIFARE_Read() failed: "));
+			Serial.println(rfid.GetStatusCodeName(status));
+			break;
+		}
+		// Dump data
+		for (byte offset = 0; offset < 4; offset++) {
+			i = page + offset;
+			if(i < 10)
+				Serial.print(F("  ")); // Pad with spaces
+			else
+				Serial.print(F(" ")); // Pad with spaces
+			Serial.print(i);
+			Serial.print(F("  "));
+			for (byte index = 0; index < 4; index++) {
+				i = 4 * offset + index;
+				if(buffer[i] < 0x10)
+					Serial.print(F(" 0"));
+				else
+					Serial.print(F(" "));
+				Serial.print((char)buffer[i]);
+			}
+			Serial.println();
+		}
+	}
+} // End PICC_DumpMifareUltralightToSerial()
