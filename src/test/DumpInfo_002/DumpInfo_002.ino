@@ -108,19 +108,23 @@ void DumpMifareUltralightToSerial()
 		}
 		else
 		{
-			Serial.print(F("byteCount = "));
-			Serial.println(byteCount);
+			// Serial.print(F("byteCount = "));
+			// Serial.println(byteCount);
+			
 			// Dump data
 			for (byte offset = 0; offset < 4; offset++) {
 				i = page + offset;
-				Serial.print(F("page = "));
-				Serial.println(i);
-				for (byte index = 0; index < 4; index++) 
+				// Serial.print(F("page = "));
+				// Serial.println(i);
+				if(i<=13) // page
 				{
-					i = 4 * offset + index;				
-					Serial.print(F("i = "));
-					Serial.println(i);
-					Serial.println((char)buffer[i]);
+					for (byte index = 0; index < 4; index++) 
+					{
+						i = 4 * offset + index;				
+						// Serial.print(F("i = "));
+						// Serial.println(i);
+						Serial.println((char)buffer[i]);
+					}	
 				}
 			}
 		}
