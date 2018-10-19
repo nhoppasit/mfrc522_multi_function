@@ -123,7 +123,7 @@ void DumpMifareUltralightToSerial()
 						i = 4 * offset + index;				
 						// Serial.print(F("i = "));
 						// Serial.println(i);
-						Serial.println((char)buffer[i]);
+						Serial.print((char)buffer[i]);
 					}	
 				}
 			}
