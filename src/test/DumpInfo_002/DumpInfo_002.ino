@@ -72,6 +72,15 @@ void loop()
 	// ---------------------------------------------
 	// Processes
 	// ---------------------------------------------	
+	rfidDump();
+}
+
+// -----------------------------------------------FUNCTION------------------------------------------------
+// ---------------------------------------------
+// Processes
+// ---------------------------------------------	
+void rfidDump()
+{
 	// Print UID
 	for (int i = 0; i < rfid.uid.size; i++)
 	{
@@ -80,15 +89,17 @@ void loop()
 		else
 			Serial.print(rfid.uid.uidByte[i], HEX);
 	}
-	Serial.println();
+	Serial.print(0x1C);
 	
 	// Print content
 	DumpMifareUltralightToSerial();
-	Serial.println();
+	Serial.print(0x1C);
 	
 	// Finalize rfid
 	rfid.PICC_HaltA();
-	Serial.println();
+		
+	// Finalize message
+	Serial.print(0x03);
 }
 
 void DumpMifareUltralightToSerial() 
@@ -103,8 +114,12 @@ void DumpMifareUltralightToSerial()
 		// Read pages
 		byteCount = sizeof(buffer);
 		status = rfid.MIFARE_Read(page, buffer, &byteCount);		
-		if (status != MFRC522::StatusCode::STATUS_OK) {
-			Serial.print(F("----------------"));
+		if (status != MFRC522::StatusCode::STATUS_OK) 
+		{
+			if(page<12)
+				Serial.print(F("----------------"));
+			else
+				Serial.print(F("--------"));
 		}
 		else
 		{
