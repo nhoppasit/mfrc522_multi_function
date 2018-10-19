@@ -124,9 +124,44 @@ void DumpMifareUltralightToSerial()
 					Serial.print(F(" 0"));
 				else
 					Serial.print(F(" "));
-				Serial.print((char)buffer[i]);
+				//Serial.print((char)buffer[i]);
+				Serial.print(buffer[i], HEX);
 			}
 			Serial.println();
 		}
 	}
+	
+	Serial.println(F("Page  0  1  2  3"));
+	// Try the mpages of the original Ultralight. Ultralight C has more pages.
+	for (byte page = 0; page < 16; page +=4) { // Read returns data for 4 pages at a time.
+		// Read pages
+		byteCount = sizeof(buffer);
+		status = rfid.MIFARE_Read(page, buffer, &byteCount);
+		if (status != MFRC522::StatusCode::STATUS_OK) {
+			Serial.print(F("MIFARE_Read() failed: "));
+			Serial.println(rfid.GetStatusCodeName(status));
+			break;
+		}
+		// Dump data
+		for (byte offset = 0; offset < 4; offset++) {
+			i = page + offset;
+			if(i < 10)
+				Serial.print(F("  ")); // Pad with spaces
+			else
+				Serial.print(F(" ")); // Pad with spaces
+			Serial.print(i);
+			Serial.print(F("  "));
+			for (byte index = 0; index < 4; index++) {
+				i = 4 * offset + index;
+				if(buffer[i] < 0x10)
+					Serial.print(F(" 0"));
+				else
+					Serial.print(F(" "));
+				Serial.print((char)buffer[i]);
+				//Serial.print(buffer[i], HEX);
+			}
+			Serial.println();
+		}
+	}
+	
 } // End PICC_DumpMifareUltralightToSerial()

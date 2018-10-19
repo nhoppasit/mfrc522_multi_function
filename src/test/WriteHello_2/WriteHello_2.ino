@@ -38,57 +38,61 @@ uint8_t pageAddr = 0x04;  //In this example we will write/read 16 bytes (page 6,
 //Pages 0 to 4 are for special functions.
 
 void setup() {
-  Serial.begin(9600); // Initialize serial communications with the PC
-  SPI.begin(); // Init SPI bus
-  mfrc522.PCD_Init(); // Init MFRC522 card
-  mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max); //Set Antenna Gain to Max- this will increase reading distance
-  Serial.println(F("Sketch has been started!"));
-  memcpy(buffer, "backtohome.org/thaimissing?12345678", 40);
+	Serial.begin(9600); // Initialize serial communications with the PC
+	SPI.begin(); // Init SPI bus
+	mfrc522.PCD_Init(); // Init MFRC522 card
+	mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max); //Set Antenna Gain to Max- this will increase reading distance
+	Serial.println(F("Sketch has been started!"));
+	memcpy(buffer, "backtohome.org/thaimissing?1234567812345", 40);
 }
 
 void loop() {
-  // Serial.println(F("Loop ... "));
-  // Look for new cards
-  if ( ! mfrc522.PICC_IsNewCardPresent())
-    return;
+	// Serial.println(F("Loop ... "));
+	// Look for new cards
+	if ( ! mfrc522.PICC_IsNewCardPresent())
+		return;
 
-  // Select one of the cards
-  if ( ! mfrc522.PICC_ReadCardSerial())
-    return;
+	// Select one of the cards
+	if ( ! mfrc522.PICC_ReadCardSerial())
+		return;
 
-  // Write data ***********************************************
-  Serial.println(F("Writing data ... "));
-  for (int i = 0; i < 10; i++) {
-    //data is writen in blocks of 4 bytes (4 bytes per page)
-    status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAddr + i, &buffer[i * 4], 4);
-    Serial.println(pageAddr + i);
-    if (status != MFRC522::STATUS_OK) {
-      Serial.print(F("MIFARE_Read() failed: "));
-      Serial.println(mfrc522.GetStatusCodeName(status));
-      return;
-    }
-  }
-  Serial.println(F("MIFARE_Ultralight_Write() OK "));
-  Serial.println();
+	// Write data ***********************************************
+	Serial.println(F("Writing data ... "));
+	for (int i = 0; i < 10; i++) 
+	{
+		//data is writen in blocks of 4 bytes (4 bytes per page)
+		status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAddr + i, &buffer[i * 4], 4);
+		Serial.println(pageAddr + i);
+		if (status != MFRC522::STATUS_OK) 
+		{
+			Serial.print(F("MIFARE_Read() failed: "));
+			Serial.println(mfrc522.GetStatusCodeName(status));
+			return;
+		}
+	}
+	Serial.println(F("MIFARE_Ultralight_Write() OK "));
+	Serial.println();
 
 
-  // Read data ***************************************************
-  Serial.println(F("Reading data ... "));
-  //data in 4 block is readed at once.
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAddr, buffer, &size);
-  if (status != MFRC522::STATUS_OK) {
-    Serial.print(F("MIFARE_Read() failed: "));
-    Serial.println(mfrc522.GetStatusCodeName(status));
-    return;
-  }
+	// Read data ***************************************************
+	Serial.println(F("Reading data ... "));
+	//data in 4 block is readed at once.
+	status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAddr, buffer, &size);
+	if (status != MFRC522::STATUS_OK) 
+	{
+		Serial.print(F("MIFARE_Read() failed: "));
+		Serial.println(mfrc522.GetStatusCodeName(status));
+		return;
+	}
 
-  Serial.print(F("Readed data: "));
-  //Dump a byte array to Serial
-  for (byte i = 0; i < 40; i++) {
-    Serial.write(buffer[i]);
-  }
-  Serial.println();
+	Serial.print(F("Readed data: "));
+	//Dump a byte array to Serial
+	for (byte i = 0; i < 40; i++) 
+	{
+		Serial.write(buffer[i]);
+	}
+	Serial.println();
 
-  mfrc522.PICC_HaltA();
+	mfrc522.PICC_HaltA();
 
 }
