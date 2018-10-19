@@ -41,9 +41,8 @@
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
 
-uint16_t xor_uid = 0;
-
-void setup() {
+void setup()
+{
   Serial.begin(9600);		// Initialize serial communications with the PC
   while (!Serial);		// Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
   SPI.begin();			// Init SPI bus
@@ -53,7 +52,8 @@ void setup() {
   Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
 }
 
-void loop() {
+void loop()
+{
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -67,25 +67,12 @@ void loop() {
   // Dump debug info about the card; PICC_HaltA() is automatically called
   mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
 
-  xor_uid = read_card();
-
-  delay(1);
-}
-
-uint16_t read_card()
-{
-  uint16_t xor_uid = 0;
-  if (! mfrc522.PICC_ReadCardSerial())
-  { //Okay. This does the same PICC_Select as the previous ReadCardSerial(), but this one fails if there is no card on the reader. Funny.
-    //Seems like we need two Select's in a row to detect card's presence.
-    xor_uid = 0;
-  }
-  else
+  for (int i = 0; i < mfrc522.uid.size; i++)
   {
-    for (int i = 0; i < mfrc522.uid.size; i = i + 2)
-    {
-      xor_uid = xor_uid ^ (mfrc522.uid.uidByte[i] << 8 | mfrc522.uid.uidByte[i + 1]);
-    }
+    Serial.print(mfrc522.uid.uidByte[i], HEX);
   }
-  return xor_uid;
+  Serial.println();
+
 }
+
+
