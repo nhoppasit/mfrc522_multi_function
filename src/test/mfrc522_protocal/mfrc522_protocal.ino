@@ -42,15 +42,17 @@
 #define TIME_ACK       1000 // ms
 //
 // Device number
-#define deviceNumber 0000
+const char txType[] = "MF";
+const char txDest[] = "0001";
+const char txSource[] = "0000";
 //
 /*--------------------------------------------------------------------------------------
  VARIABLES
  --------------------------------------------------------------------------------------*/
 // Transport header
-char typeField[2];
-char destinationField[4];
-char sourceField[4];
+char transType[2];
+char transDestination[4];
+char transSource[4];
 //
 // Presentation header
 char formatVersion;
@@ -61,7 +63,6 @@ char moreIndicator;
 // 
 //Serial control parameters
 int inByte = 0;         // incoming serial byte
-boolean Addressed = false;
 boolean dataComing = false;
 boolean dataReceived = false;
 boolean dataSending = false;
@@ -109,16 +110,18 @@ void setup()
  --------------------------------------------------------------------------------------*/
 void loop()
 {  
-  tick(); // นับเวลาตลอดเวลา
-  serialReceive(); // จัดการข้อมูลที่เข้ามาทุกๆ Byte
-  //
-  // --- Communication timed tasks -------------------------  
-  taskACKTime(tick_state && dataSending);
-  taskCLRDR(tick_state && dataReceived);
-  //
-  // Serial respond functions
-  // sendStatus(dataReceived); // ข้อมูลใน incoming buffer ถูกล้างด้วย
-  //
+	tick(); // นับเวลาตลอดเวลา
+	serialReceive(); // จัดการข้อมูลที่เข้ามาทุกๆ Byte
+	//
+	// --- Communication timed tasks -------------------------  
+	taskACKTime(tick_state && dataSending);
+	taskCLRDR(tick_state && dataReceived);
+	//
+	// Serial respond functions
+	// sendStatus(dataReceived); // ข้อมูลใน incoming buffer ถูกล้างด้วย
+	validateTxType(dataReceived);
+	validateTxDest(dataReceived);
+	//
 }
 //
 //
@@ -280,7 +283,6 @@ void resetReceivingCTRL()
 // ล้างตัวแปรสถานะการรับค่าจาก Serial
 void clearReceiving()
 {
-  Addressed = false;
   dataComing = false;
   dataReceived = false;
   resetReceivingCTRL();
@@ -303,217 +305,264 @@ void sendBIZ()
   Serial.println("[BIZ]");
 #endif
 }
-//
+//--------------------------------------------------
 // Event สำหรับรับค่าจาก Serial ทุกๆ byte
+//--------------------------------------------------
 void serialReceive()
 {  
-  if (Serial.available() > 0) // if we get a valid byte, go ahead:
-  {    
-    inByte = Serial.read(); // get incoming byte:
-    //
+	if (Serial.available() > 0) // if we get a valid byte, go ahead:
+	{    
+		inByte = Serial.read(); // get incoming byte:
 #if TEST_LOGIC<PRINT_LOG
-    Serial.print("In-byte = 0x");
-    Serial.println(inByte, HEX);
+		Serial.print("In-byte = 0x");
+		Serial.println(inByte, HEX);
 #endif
-    //
-    if(!dataComing)
-    {
-      //
-      // รับ ACK / NAK / OTHERS
-      if(dataSending)
-      {
-        dataSending = false;
-        if(inByte==ACK) ACK_state = ACK;
-        else if(inByte==NAK) ACK_state = NAK;
-        else ACK_state = -1;        
+		//
+		// ------------------------------------------------
+		// Not data comming or receiving 
+		//    - sending
+		//    - received
+		//    - wait new message
+		// ------------------------------------------------
+		if(!dataComing)
+		{
+			//
+			// -----------------------------------------
+			// รับ ACK / NAK / OTHERS
+			// -----------------------------------------
+			if(dataSending)
+			{
+				dataSending = false;
+				if(inByte==ACK) ACK_state = ACK;
+				else if(inByte==NAK) ACK_state = NAK;
+				else ACK_state = -1;       
 #if TEST_LOGIC<PRINT_LOG_ACK
-        Serial.println("ACK received.");
-        Serial.print("ACK = ");
-        Serial.println(ACK_state, HEX);
+				Serial.println("ACK received.");
+				Serial.print("ACK = ");
+				Serial.println(ACK_state, HEX);
 #endif
-        return;
-      }
-      //
-      // -----------------------------------
-      // Wait for data executation. BUSY!
-      // -----------------------------------
-      if(dataReceived && inByte==SLOT_NBR) 
-      {
+				return;
+			}
+			//
+			//
+			// -----------------------------------
+			// Wait for data executation. BUSY!
+			// -----------------------------------
+			if(dataReceived && inByte==STX) 
+			{
 #if TEST_LOGIC<PRINT_LOG
-        Serial.println("Busy!");
+				Serial.println("Busy!");
 #endif
-        sendBIZ();
-      }
-      if(dataReceived) return;
-
-      // -----------------------------------
-      // Addressing.
-      // Reset for data receiving
-      // -----------------------------------
-      if(!Addressed && inByte==SLOT_NBR)
-      {
-        Addressed = true;
-
+				sendBIZ();
+			}
+			//
+			//
+			// -----------------------------------
+			// Jump out to process the data
+			// -----------------------------------
+			if(dataReceived) return;
+			//
+			//
+			// -----------------------------------
+			// After process the received data.
+			// Check STX.
+			// Reset for data receiving
+			// -----------------------------------
+			if(inByte==STX)
+			{
 #if TEST_LOGIC<PRINT_LOG
-        Serial.print("SLOT number = 0x");
-        Serial.println(inByte, HEX);
-        Serial.println("Right SLOT."); 
+				Serial.print("STX = 0x");
+				Serial.println(inByte, HEX);
 #endif
-        return;
-      }
-
-      // ---------------------------------
-      // Failed! STX / SEPARATOR
-      // ---------------------------------
-      if(Addressed && (inByte!=SEP))
-      {
-        Addressed = false;
-        dataReceived = false;
-        dataComing = false;
-
+				resetReceivingCTRL();
+				dataReceived = false;
+				dataComing = true; // <-- Only one logic turn to receive message
+				return;
+			}
+			//
+		} // <-- End if(!dataComing) 
+		//
+		// ------------------------------------
+		// Message coming...
+		// These logic has no return-command.
+		// ------------------------------------
+		if(dataComing)
+		{      
+			if(0<=byteIndex && byteIndex<=1) // LLLL ...................
+			{
+				if(byteIndex==0) LLLL = inByte*10;
+				else LLLL = LLLL + inByte;
+				LRC = LRC^LLLL;
 #if TEST_LOGIC<PRINT_LOG
-        Serial.print("SEP = 0x");
-        Serial.println(inByte, HEX);
-        Serial.println("SEP failed!");
+				Serial.print("LLLL = ");
+				Serial.println(LLLL);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-        return;
-      }
-
-      // ---------------------------------
-      // COMMIT STX / SEPARATOR
-      // ---------------------------------
-      if(Addressed && (inByte==SEP))
-      {
+			} 
+			else if(2<=byteIndex && byteIndex<=3) // transType: Transport header type ...................
+			{     
+				transType[byteIndex-2] = (char)inByte;
+				LRC = LRC^inByte;
 #if TEST_LOGIC<PRINT_LOG
-        Serial.print("SEP = 0x");
-        Serial.println(inByte, HEX);
+				Serial.print("transType[");
+				Serial.print(byteIndex-2, DEC);
+				Serial.print("] = ");
+				Serial.println(transType[byteIndex-2]);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-        resetReceivingCTRL();
-        Addressed = false;
-        dataReceived = false;
-        dataComing = true;
-
-        return;
-      }
-
-    } // <-- if(!dataComing)
-
-    // ------------------------------------
-    // Message coming...
-    // These logic has no return-command.
-    // ------------------------------------
-    if(dataComing)
-    {      
-      if(byteIndex==0) // Field type ...................
-      {     
-        LRC = LRC^SLOT_NBR;
-        LRC = LRC^SEP;
-        fieldType = inByte;
-        LRC = LRC^fieldType;
-
+			}
+			else if(4<=byteIndex && byteIndex<=7) // transDestination: Transport destination ...................
+			{     
+				transDestination[byteIndex-4] = (char)inByte;
+				LRC = LRC^inByte;
 #if TEST_LOGIC<PRINT_LOG
-        Serial.print("Field type = 0x");
-        Serial.println(fieldType, HEX);
-        Serial.print("LRC = 0x");
-        Serial.println(LRC, HEX);
+				Serial.print("transDestination[");
+				Serial.print(byteIndex-4, DEC);
+				Serial.print("] = ");
+				Serial.println(transDestination[byteIndex-4]);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-      }
-
-      else if(byteIndex==1) // LLLL ...................
-      {
-        LLLL = inByte;
-        LRC = LRC^LLLL;
-
+			}
+			else if(8<=byteIndex && byteIndex<=11) // transSource: Transport source ...................
+			{     
+				transSource[byteIndex-8] = (char)inByte;
+				LRC = LRC^inByte;
 #if TEST_LOGIC<PRINT_LOG
-        Serial.print("LLLL = ");
-        Serial.println(LLLL);
-        Serial.print("LRC = 0x");
-        Serial.println(LRC, HEX);
+				Serial.print("transSource[");
+				Serial.print(byteIndex-8, DEC);
+				Serial.print("] = ");
+				Serial.println(transSource[byteIndex-8]);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-      } 
-
-      else if(1<byteIndex && byteIndex<LLLL+2) // Data ...................
-      {
-        int idx = byteIndex - 2;
-        dataBytes[idx] = inByte;
-        LRC = LRC^dataBytes[idx];
+			}
+			
+			/* //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+			else if(byteIndex==1) // LLLL ...................
+			{
+				LLLL = inByte;
+				LRC = LRC^LLLL;
 #if TEST_LOGIC<PRINT_LOG
-        Serial.print("data [");
-        Serial.print(idx);
-        Serial.print("] = 0x");
-        Serial.println(dataBytes[idx], HEX);
-        Serial.print("LRC = 0x");
-        Serial.println(LRC, HEX);
+				Serial.print("LLLL = ");
+				Serial.println(LLLL);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-      }   
-      else if(byteIndex==LLLL+2) // ETX ...................
-      {
+			} */  
+			else if(11<byteIndex && byteIndex<LLLL+12) // Data ...................
+			{
+				int idx = byteIndex - 2;
+				dataBytes[idx] = inByte;
+				LRC = LRC^dataBytes[idx];
 #if TEST_LOGIC<PRINT_LOG
-        Serial.print("Byte index = ");
-        Serial.println(byteIndex);
+				Serial.print("data [");
+				Serial.print(idx);
+				Serial.print("] = 0x");
+				Serial.println(dataBytes[idx], HEX);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-        if(inByte==ETX) // ETX came. <--- Good : go ahead
-        {
-          LRC = LRC^ETX;
+			}  
+			else if(byteIndex==LLLL+12) // ETX ...................
+			{
 #if TEST_LOGIC<PRINT_LOG
-          Serial.println("ETX came.");
-          Serial.print("LRC = 0x");
-          Serial.println(LRC, HEX);
+				Serial.print("Byte index = ");
+				Serial.println(byteIndex);
 #endif
-        }
-        else // ETX failed. <--- Reject : reset
-        {
+				if(inByte==ETX) // ETX came. <--- Good : go ahead
+				{
+					LRC = LRC^ETX;
 #if TEST_LOGIC<PRINT_LOG
-          Serial.println("ETX failed!");
+					Serial.println("ETX came.");
+					Serial.print("LRC = 0x");
+					Serial.println(LRC, HEX);
 #endif
-          clearReceiving();
-          sendNAK();
-        }               
-      }
-
-      else if(byteIndex==LLLL+3) // Incoming LRC ...................
-      {
-        if(LRC==inByte) // LRC commited. <--- Good : go ahead
-        {
+				}
+				else // ETX failed. <--- Reject : reset
+				{
 #if TEST_LOGIC<PRINT_LOG
-          Serial.println("LRC commited.");
+					Serial.println("ETX failed!");
 #endif
-          Addressed = false;
-          dataComing = false;
-          dataReceived = true;
-          taskCLRDR_CNT = 0; // Reset เพื่อนับเวลา ออก
-          
+					clearReceiving();
+					sendNAK();
+				}               
+			}
+			else if(byteIndex==LLLL+13) // Incoming LRC ...................
+			{
+				if(LRC==inByte) // LRC commited. <--- Good : go ahead
+				{
 #if TEST_LOGIC<PRINT_LOG
-          Serial.println("Message completed."); 
+					Serial.println("LRC commited.");
 #endif
-          Serial.write(ACK);
+					dataComing = false;
+					dataReceived = true;
+					taskCLRDR_CNT = 0; // Reset เพื่อนับเวลา ออก          
 #if TEST_LOGIC<PRINT_LOG
-          Serial.println("[ACK]");
+					Serial.println("Message completed."); 
 #endif
-        }
-        else // LRC failed. <--- Reject : reset
-        {
+					Serial.write(ACK); // <-- Send ACK
 #if TEST_LOGIC<PRINT_LOG
-          Serial.println("LRC failed.");
+					Serial.println("[ACK]");
 #endif
-          clearReceiving();
-          sendNAK();
-        }
-      }      
-
-      // Update index and check its limit  ...................
-      byteIndex++;
-      if(byteIndex>MAX_DATA_SIZE) clearReceiving(); // Clear all controls
-
-    } // Message coming...
-  } // Serial avariable...
+				}
+				else // LRC failed. <--- Reject : reset
+				{
+#if TEST_LOGIC<PRINT_LOG
+					Serial.println("LRC failed.");
+#endif
+					clearReceiving();
+					sendNAK();
+				}
+			}      
+			// Update index and check its limit  ...................
+			byteIndex++;
+			if(byteIndex>MAX_DATA_SIZE) clearReceiving(); // Clear all controls
+			//
+		} // End Message coming...
+	} // End Serial avariable...
 }
 //
 // .......................................................................................
 // Message execute
 // .......................................................................................
 //
-// ส่งสถานะแทนจอด
+void validateTxType(boolean _flag)
+{
+	if(_flag)
+	{		
+		if(!(transType[0]==txType[0] && 
+			 transType[1]==txType[1])) 
+		{
+			clearReceiving();
+#if TEST_LOGIC<PRINT_LOG
+			Serial.println("WRONG Transaction header type!");
+			Serial.println("Data terminated.");
+#endif      
+		}
+	}
+}
+void validateTxDest(boolean _flag)
+{
+	if(_flag)
+	{		
+		if(!(transDestination[0]==txDest[0] && 
+			 transDestination[1]==txDest[1] && 
+			 transDestination[2]==txDest[2] && 
+			 transDestination[3]==txDest[3])) 
+		{
+			clearReceiving();
+#if TEST_LOGIC<PRINT_LOG
+			Serial.println("WRONG Transaction destination!");
+			Serial.println("Data terminated.");
+#endif      
+		}
+	}
+}
+//
+/* // ส่งสถานะ
 void sendStatus(boolean _flag)
 {
   if(_flag)
@@ -661,7 +710,7 @@ void sendStatus(boolean _flag)
     }
   }
 }
-
+ */
 
 
 
