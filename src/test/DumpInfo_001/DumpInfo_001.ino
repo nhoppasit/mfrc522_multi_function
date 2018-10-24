@@ -39,6 +39,8 @@
 #define RST_PIN         5          // Configurable, see typical pin layout above
 #define SS_PIN          53         // Configurable, see typical pin layout above
 
+#define MAX_PAGE 45
+
 MFRC522 rfid(SS_PIN, RST_PIN);  // Create MFRC522 instance
 
 void setup()
@@ -82,6 +84,17 @@ void loop()
 	}
 	Serial.println();
 	
+	// SAK
+	Serial.print(F("Card SAK: "));
+	if(rfid.uid.sak < 0x10)
+		Serial.print(F("0"));
+	Serial.println(rfid.uid.sak, HEX);
+	
+	// (suggested) PICC type
+	MFRC522::PICC_Type piccType = MFRC522::PICC_GetType(rfid.uid.sak);
+	Serial.print(F("PICC type: "));
+	Serial.println(MFRC522::PICC_GetTypeName(piccType));
+	
 	// Print content
 	DumpMifareUltralightToSerial();
 	Serial.println();
@@ -100,7 +113,7 @@ void DumpMifareUltralightToSerial()
 	
 	Serial.println(F("Page  0  1  2  3"));
 	// Try the mpages of the original Ultralight. Ultralight C has more pages.
-	for (byte page = 0; page < 45; page +=4) { // Read returns data for 4 pages at a time.
+	for (byte page = 0; page < MAX_PAGE; page +=4) { // Read returns data for 4 pages at a time.
 		// Read pages
 		byteCount = sizeof(buffer);
 		status = rfid.MIFARE_Read(page, buffer, &byteCount);
@@ -110,30 +123,40 @@ void DumpMifareUltralightToSerial()
 			break;
 		}
 		// Dump data
-		for (byte offset = 0; offset < 4; offset++) {
+		for (byte offset = 0; offset < 4; offset++) 
+		{
 			i = page + offset;
-			if(i < 10)
-				Serial.print(F("  ")); // Pad with spaces
+			if(i < 0x10)
+				Serial.print(F(" 0")); // Pad with spaces
 			else
 				Serial.print(F(" ")); // Pad with spaces
-			Serial.print(i);
+			Serial.print(i, HEX);
 			Serial.print(F("  "));
+			for (byte index = 0; index < 4; index++) 
+			{
+				i = 4 * offset + index;
+				if(buffer[i] < 0x10)
+					Serial.print(F(" 0"));
+				else
+					Serial.print(F(" "));
+				Serial.print(buffer[i], HEX);
+			}
+			Serial.print(F("  |  "));
 			for (byte index = 0; index < 4; index++) {
 				i = 4 * offset + index;
 				if(buffer[i] < 0x10)
 					Serial.print(F(" 0"));
 				else
 					Serial.print(F(" "));
-				//Serial.print((char)buffer[i]);
-				Serial.print(buffer[i], HEX);
+				Serial.print((char)buffer[i]);
 			}
 			Serial.println();
-		}
+		}		
 	}
 	
-	Serial.println(F("Page  0  1  2  3"));
+	/* Serial.println(F("Page  0  1  2  3"));
 	// Try the mpages of the original Ultralight. Ultralight C has more pages.
-	for (byte page = 0; page < 45; page +=4) { // Read returns data for 4 pages at a time.
+	for (byte page = 0; page < MAX_PAGE; page +=4) { // Read returns data for 4 pages at a time.
 		// Read pages
 		byteCount = sizeof(buffer);
 		status = rfid.MIFARE_Read(page, buffer, &byteCount);
@@ -145,11 +168,11 @@ void DumpMifareUltralightToSerial()
 		// Dump data
 		for (byte offset = 0; offset < 4; offset++) {
 			i = page + offset;
-			if(i < 10)
-				Serial.print(F("  ")); // Pad with spaces
+			if(i < 0x10)
+				Serial.print(F(" 0")); // Pad with spaces
 			else
 				Serial.print(F(" ")); // Pad with spaces
-			Serial.print(i);
+			Serial.print(i, HEX);
 			Serial.print(F("  "));
 			for (byte index = 0; index < 4; index++) {
 				i = 4 * offset + index;
@@ -162,6 +185,6 @@ void DumpMifareUltralightToSerial()
 			}
 			Serial.println();
 		}
-	}
+	} */
 	
 } // End PICC_DumpMifareUltralightToSerial()
