@@ -1,3 +1,6 @@
+#include <arduino.h>
+#include <MFRC522.h>
+
 /*--------------------------------------------------------------------------------------
  CODE CONTROL
  --------------------------------------------------------------------------------------*/
@@ -12,7 +15,7 @@
  --------------------------------------------------------------------------------------*/
 // #include <SPI.h>
 // #include <RFID.h>
-// #include <Wire.h> 
+// #include <Wire.h>
 // #include <LiquidCrystal_I2C.h>
 //
 /*--------------------------------------------------------------------------------------
@@ -60,14 +63,14 @@ char responseIndicator;
 char transactionCode[2];
 char responseCode[2];
 char moreIndicator;
-// 
+//
 //Serial control parameters
 int inByte = 0;         // incoming serial byte
 boolean dataComing = false;
 boolean dataReceived = false;
 boolean dataSending = false;
 int byteIndex = -1;
-int LLLL = 0; 
+int LLLL = 0;
 int LRC = 0;
 int ACK_state = -4;
 //
@@ -77,11 +80,11 @@ int dataBytes[MAX_DATA_SIZE];
 //
 // Send buffer
 int  outIDX = 0;
-byte outBytes[MAX_DATA_SIZE]; 
+byte outBytes[MAX_DATA_SIZE];
 byte outLRC = 0x00;
 //
 // Blink
-boolean Blink = false; // ใช้จำสถานะไฟกระพริบ
+boolean Blink = false; // ���ʶҹ�信�о�Ժ
 //
 // Timer tick
 unsigned long previousMillis;
@@ -101,24 +104,31 @@ void setup()
   Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
-  }  
+  }
 }
 //
 //
 /*--------------------------------------------------------------------------------------
  === LOOP                                                                            ===
  --------------------------------------------------------------------------------------*/
+void tick();
+void serialReceive();
+void taskACKTime(boolean);
+void taskCLRDR(boolean);
+void validateTxType(boolean);
+void validateTxDest(boolean);
+void clearReceiving();
 void loop()
-{  
-	tick(); // นับเวลาตลอดเวลา
-	serialReceive(); // จัดการข้อมูลที่เข้ามาทุกๆ Byte
+{
+	tick(); // �Ѻ���ҵ�ʹ����
+	serialReceive(); // �Ѵ��â����ŷ������ҷء� Byte
 	//
-	// --- Communication timed tasks -------------------------  
+	// --- Communication timed tasks -------------------------
 	taskACKTime(tick_state && dataSending);
 	taskCLRDR(tick_state && dataReceived);
 	//
 	// Serial respond functions
-	// sendStatus(dataReceived); // ข้อมูลใน incoming buffer ถูกล้างด้วย
+	// sendStatus(dataReceived); // ������� incoming buffer �١��ҧ����
 	validateTxType(dataReceived);
 	validateTxDest(dataReceived);
 	//
@@ -137,8 +147,8 @@ void tick()
 {
   tick_state = false;
   if(millis() - previousMillis > INTERVAL)
-  {       
-    previousMillis = millis();    
+  {
+    previousMillis = millis();
     tick_state = true;
   }
 }
@@ -147,34 +157,34 @@ void tick()
 // TASKs
 // .......................................................................................
 //
-/* // 1. อ่าน Member Tag [RFID-1] และ Bike Tag [RFID-2]
+/* // 1. ��ҹ Member Tag [RFID-1] ��� Bike Tag [RFID-2]
 void taskRFID(boolean _flag)
 {
   if(_flag)
   {
     taskRFID_CNT++;
     if(taskRFID_CNT == TIME_RFID_MB/INTERVAL) // Member
-    {    
-      if (rfid1.isCard()) 
+    {
+      if (rfid1.isCard())
       {
-        if (rfid1.readCardSerial()) 
+        if (rfid1.readCardSerial())
         {
           rfid1_exist=true;
           for(byte i=0;i<5;i++)
           {
             mbTag[i] = rfid1.serNum[i];
-          }          
-        } 
-      }           
+          }
+        }
+      }
       rfid1.halt();
-    } // if - อ่าน RFID-1 : MEMBER
+    } // if - ��ҹ RFID-1 : MEMBER
 
     else if(taskRFID_CNT >= TIME_RFID_BIKE/INTERVAL) // Bike
-    {  
+    {
       taskRFID_CNT = 0; // Reset counter <--
-      if (rfid2.isCard()) 
+      if (rfid2.isCard())
       {
-        if (rfid2.readCardSerial()) 
+        if (rfid2.readCardSerial())
         {
           rfid2_exist=true;
           for(byte i=0;i<5;i++)
@@ -187,14 +197,14 @@ void taskRFID(boolean _flag)
           rfid2_exist=false;
           rfid1_exist=false;
         }
-      }    
+      }
       else
       {
         rfid2_exist=false;
         rfid1_exist=false;
-      }   
-      rfid2.halt(); 
-    } // if - อ่าน RFID-2 : Bike
+      }
+      rfid2.halt();
+    } // if - ��ҹ RFID-2 : Bike
   }
 } */
 //
@@ -206,26 +216,26 @@ void taskBlink(boolean _flag)
     taskBlink_CNT++;
     if(taskBlink_CNT > TIME_BLINK/INTERVAL)
     {
-      taskBlink_CNT = 0; // Reset counter <-- 
+      taskBlink_CNT = 0; // Reset counter <--
       if(!Blink)
-      {      
+      {
         //lcd.backlight();
         Blink=true;
       }
       else
-      {      
+      {
         //lcd.noBacklight();
         Blink=false;
       }
     }
-  }  
+  }
 }
 //
 // 4. ACK TIME
 void taskACKTime(boolean _flag)
 {
   if(_flag)
-  {    
+  {
     taskACK_CNT++;
     if(taskACK_CNT > TIME_ACK/INTERVAL)
     {
@@ -245,7 +255,7 @@ void taskACKTime(boolean _flag)
 void taskCLRDR(boolean _flag)
 {
   if(_flag)
-  {    
+  {
     taskCLRDR_CNT++;
     if(taskCLRDR_CNT > TIME_ACK/INTERVAL)
     {
@@ -268,7 +278,7 @@ void taskCLRDR(boolean _flag)
 // Serial event
 // .......................................................................................
 //
-// ล้างตัวแปรควบคุมสำหรับรับค่าจาก Serial
+// ��ҧ����äǺ�������Ѻ�Ѻ��Ҩҡ Serial
 void resetReceivingCTRL()
 {
   byteIndex = 0;
@@ -276,11 +286,11 @@ void resetReceivingCTRL()
   LLLL = 0;
   LRC = 0;
 #if TEST_LOGIC<PRINT_LOG
-  Serial.println("Data receiving controls are reset."); 
-#endif  
+  Serial.println("Data receiving controls are reset.");
+#endif
 }
 //
-// ล้างตัวแปรสถานะการรับค่าจาก Serial
+// ��ҧ�����ʶҹС���Ѻ��Ҩҡ Serial
 void clearReceiving()
 {
   dataComing = false;
@@ -288,7 +298,7 @@ void clearReceiving()
   resetReceivingCTRL();
 }
 //
-// ส่งคำปฏิเสธ
+// �觤ӻ���ʸ
 void sendNAK()
 {
   Serial.write(NAK);
@@ -297,7 +307,7 @@ void sendNAK()
 #endif
 }
 //
-// ส่งคำเตือนไม่ว่าง
+// �觤���͹�����ҧ
 void sendBIZ()
 {
   Serial.write(BIZ);
@@ -306,12 +316,12 @@ void sendBIZ()
 #endif
 }
 //--------------------------------------------------
-// Event สำหรับรับค่าจาก Serial ทุกๆ byte
+// Event ����Ѻ�Ѻ��Ҩҡ Serial �ء� byte
 //--------------------------------------------------
 void serialReceive()
-{  
+{
 	if (Serial.available() > 0) // if we get a valid byte, go ahead:
-	{    
+	{
 		inByte = Serial.read(); // get incoming byte:
 #if TEST_LOGIC<PRINT_LOG
 		Serial.print("In-byte = 0x");
@@ -319,7 +329,7 @@ void serialReceive()
 #endif
 		//
 		// ------------------------------------------------
-		// Not data comming or receiving 
+		// Not data comming or receiving
 		//    - sending
 		//    - received
 		//    - wait new message
@@ -328,14 +338,14 @@ void serialReceive()
 		{
 			//
 			// -----------------------------------------
-			// รับ ACK / NAK / OTHERS
+			// �Ѻ ACK / NAK / OTHERS
 			// -----------------------------------------
 			if(dataSending)
 			{
 				dataSending = false;
 				if(inByte==ACK) ACK_state = ACK;
 				else if(inByte==NAK) ACK_state = NAK;
-				else ACK_state = -1;       
+				else ACK_state = -1;
 #if TEST_LOGIC<PRINT_LOG_ACK
 				Serial.println("ACK received.");
 				Serial.print("ACK = ");
@@ -348,7 +358,7 @@ void serialReceive()
 			// -----------------------------------
 			// Wait for data executation. BUSY!
 			// -----------------------------------
-			if(dataReceived && inByte==STX) 
+			if(dataReceived && inByte==STX)
 			{
 #if TEST_LOGIC<PRINT_LOG
 				Serial.println("Busy!");
@@ -380,14 +390,14 @@ void serialReceive()
 				return;
 			}
 			//
-		} // <-- End if(!dataComing) 
+		} // <-- End if(!dataComing)
 		//
 		// ------------------------------------
 		// Message coming...
 		// These logic has no return-command.
 		// ------------------------------------
 		if(dataComing)
-		{      
+		{
 			if(0<=byteIndex && byteIndex<=1) // LLLL ...................
 			{
 				if(byteIndex==0) LLLL = inByte*10;
@@ -396,10 +406,12 @@ void serialReceive()
 #if TEST_LOGIC<PRINT_LOG
 				Serial.print("LLLL = ");
 				Serial.println(LLLL);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-			} 
+			}
 			else if(2<=byteIndex && byteIndex<=3) // transType: Transport header type ...................
-			{     
+			{
 				transType[byteIndex-2] = (char)inByte;
 				LRC = LRC^inByte;
 #if TEST_LOGIC<PRINT_LOG
@@ -407,10 +419,12 @@ void serialReceive()
 				Serial.print(byteIndex-2, DEC);
 				Serial.print("] = ");
 				Serial.println(transType[byteIndex-2]);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
 			}
 			else if(4<=byteIndex && byteIndex<=7) // transDestination: Transport destination ...................
-			{     
+			{
 				transDestination[byteIndex-4] = (char)inByte;
 				LRC = LRC^inByte;
 #if TEST_LOGIC<PRINT_LOG
@@ -418,10 +432,12 @@ void serialReceive()
 				Serial.print(byteIndex-4, DEC);
 				Serial.print("] = ");
 				Serial.println(transDestination[byteIndex-4]);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
 			}
 			else if(8<=byteIndex && byteIndex<=11) // transSource: Transport source ...................
-			{     
+			{
 				transSource[byteIndex-8] = (char)inByte;
 				LRC = LRC^inByte;
 #if TEST_LOGIC<PRINT_LOG
@@ -429,74 +445,11 @@ void serialReceive()
 				Serial.print(byteIndex-8, DEC);
 				Serial.print("] = ");
 				Serial.println(transSource[byteIndex-8]);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
 			}
-			else if(12==byteIndex) // formatVersion: Presentation header format version ...................
-			{     
-				formatVersion = (char)inByte;
-				LRC = LRC^inByte;
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("Format Version = ");
-				Serial.println(formatVersion);
-#endif
-			}
-			else if(13==byteIndex) // responseIndicator: Presentation header request-response indicator  ...................
-			{     
-				responseIndicator = (char)inByte;
-				LRC = LRC^inByte;
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("Request-response indicator = ");
-				Serial.println(responseIndicator);
-#endif
-			}
-			else if(14<=byteIndex && byteIndex<=15) // transactionCode: Presentation header transaction Code ...................
-			{     
-				transactionCode[byteIndex-14] = (char)inByte;
-				LRC = LRC^inByte;
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("Transaction Code[");
-				Serial.print(byteIndex-14, DEC);
-				Serial.print("] = ");
-				Serial.println(transactionCode[byteIndex-14]);
-#endif
-			}
-			else if(16<=byteIndex && byteIndex<=15) // responseCode: Presentation header response Code ...................
-			{     
-				responseCode[byteIndex-14] = (char)inByte;
-				LRC = LRC^inByte;
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("Response Code[");
-				Serial.print(byteIndex-16, DEC);
-				Serial.print("] = ");
-				Serial.println(responseCode[byteIndex-16]);
-#endif
-			}
-			else if(18==byteIndex) // moreIndicator: Presentation header more indicator  ...................
-			{     
-				moreIndicator = (char)inByte;
-				LRC = LRC^inByte;
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("More indicator = ");
-				Serial.println(moreIndicator);
-#endif
-			}
-			else if(19==byteIndex) // moreIndicator: Presentation header more indicator  ...................
-			{     
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("Field separator = ");
-				Serial.println(inByte);
-#endif
-				if(inByte!=SEP) // SEP failed!
-				{
-#if TEST_LOGIC<PRINT_LOG
-					Serial.println("SEP failed!");
-#endif
-					clearReceiving();
-					sendNAK();
-				}     
-			}			
-			//
-			//
+
 			/* //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 			else if(byteIndex==1) // LLLL ...................
 			{
@@ -508,9 +461,8 @@ void serialReceive()
 				Serial.print("LRC = 0x");
 				Serial.println(LRC, HEX);
 #endif
-			} */  
-			
-			else if(19<byteIndex && byteIndex<LLLL+20) // Data ...................
+			} */
+			else if(11<byteIndex && byteIndex<LLLL+12) // Data ...................
 			{
 				int idx = byteIndex - 2;
 				dataBytes[idx] = inByte;
@@ -520,9 +472,11 @@ void serialReceive()
 				Serial.print(idx);
 				Serial.print("] = 0x");
 				Serial.println(dataBytes[idx], HEX);
+				Serial.print("LRC = 0x");
+				Serial.println(LRC, HEX);
 #endif
-			}  
-			else if(byteIndex==LLLL+20) // ETX ...................
+			}
+			else if(byteIndex==LLLL+12) // ETX ...................
 			{
 #if TEST_LOGIC<PRINT_LOG
 				Serial.print("Byte index = ");
@@ -544,9 +498,9 @@ void serialReceive()
 #endif
 					clearReceiving();
 					sendNAK();
-				}               
+				}
 			}
-			else if(byteIndex==LLLL+21) // Incoming LRC ...................
+			else if(byteIndex==LLLL+13) // Incoming LRC ...................
 			{
 				if(LRC==inByte) // LRC commited. <--- Good : go ahead
 				{
@@ -555,9 +509,9 @@ void serialReceive()
 #endif
 					dataComing = false;
 					dataReceived = true;
-					taskCLRDR_CNT = 0; // Reset เพื่อนับเวลา ออก          
+					taskCLRDR_CNT = 0; // Reset ���͹Ѻ���� �͡
 #if TEST_LOGIC<PRINT_LOG
-					Serial.println("Message completed."); 
+					Serial.println("Message completed.");
 #endif
 					Serial.write(ACK); // <-- Send ACK
 #if TEST_LOGIC<PRINT_LOG
@@ -572,7 +526,7 @@ void serialReceive()
 					clearReceiving();
 					sendNAK();
 				}
-			}      
+			}
 			// Update index and check its limit  ...................
 			byteIndex++;
 			if(byteIndex>MAX_DATA_SIZE) clearReceiving(); // Clear all controls
@@ -588,49 +542,49 @@ void serialReceive()
 void validateTxType(boolean _flag)
 {
 	if(_flag)
-	{		
-		if(!(transType[0]==txType[0] && 
-			 transType[1]==txType[1])) 
+	{
+		if(!(transType[0]==txType[0] &&
+			 transType[1]==txType[1]))
 		{
 			clearReceiving();
 #if TEST_LOGIC<PRINT_LOG
 			Serial.println("WRONG Transaction header type!");
 			Serial.println("Data terminated.");
-#endif      
+#endif
 		}
 	}
 }
 void validateTxDest(boolean _flag)
 {
 	if(_flag)
-	{		
-		if(!(transDestination[0]==txDest[0] && 
-			 transDestination[1]==txDest[1] && 
-			 transDestination[2]==txDest[2] && 
-			 transDestination[3]==txDest[3])) 
+	{
+		if(!(transDestination[0]==txDest[0] &&
+			 transDestination[1]==txDest[1] &&
+			 transDestination[2]==txDest[2] &&
+			 transDestination[3]==txDest[3]))
 		{
 			clearReceiving();
 #if TEST_LOGIC<PRINT_LOG
 			Serial.println("WRONG Transaction destination!");
 			Serial.println("Data terminated.");
-#endif      
+#endif
 		}
 	}
 }
 //
-/* // ส่งสถานะ
+/* // ��ʶҹ�
 void sendStatus(boolean _flag)
 {
   if(_flag)
   {
     if(fieldType==MASTER_CONTACT)
     {
-      //      
+      //
       clearReceiving();
       //
       outLRC = 0x00;
       // SLOT number
-      outIDX = 0; 
+      outIDX = 0;
       outBytes[outIDX] = SLOT_NBR;
       outLRC = outLRC^outBytes[outIDX];
 #if TEST_LOGIC<PRINT_LOG
@@ -640,7 +594,7 @@ void sendStatus(boolean _flag)
       Serial.println(outBytes[outIDX], HEX);
       Serial.print("LRC = 0x");
       Serial.println(outLRC, HEX);
-#endif      
+#endif
       // SEP
       outIDX++;
       outBytes[outIDX] = SEP;
@@ -652,7 +606,7 @@ void sendStatus(boolean _flag)
       Serial.println(outBytes[outIDX], HEX);
       Serial.print("LRC = 0x");
       Serial.println(outLRC, HEX);
-#endif      
+#endif
       // '?' : Status
       outIDX++;
       outBytes[outIDX] = MASTER_CONTACT;
@@ -664,15 +618,15 @@ void sendStatus(boolean _flag)
       Serial.println(outBytes[outIDX], HEX);
       Serial.print("LRC = 0x");
       Serial.println(outLRC, HEX);
-#endif              
+#endif
       // LLLL
       outIDX++;
       outBytes[outIDX] = 1;
       if(rfid2_exist) // Bike tag
-      { 
+      {
         outBytes[outIDX] = outBytes[outIDX] + 5; // Bike tag
-        if(rfid1_exist) 
-          outBytes[outIDX] = outBytes[outIDX] + 5; // Member tag ต้องมีข้อมูล Bike Tag ด้วย       
+        if(rfid1_exist)
+          outBytes[outIDX] = outBytes[outIDX] + 5; // Member tag ��ͧ�բ����� Bike Tag ����
       }
       outLRC = outLRC^outBytes[outIDX];
 #if TEST_LOGIC<PRINT_LOG
@@ -682,7 +636,7 @@ void sendStatus(boolean _flag)
       Serial.println(outBytes[outIDX], HEX);
       Serial.print("LRC = 0x");
       Serial.println(outLRC, HEX);
-#endif      
+#endif
       // Byte sensor
       outIDX++;
       outBytes[outIDX] = sensorByte;
@@ -694,7 +648,7 @@ void sendStatus(boolean _flag)
       Serial.println(outBytes[outIDX], HEX);
       Serial.print("LRC = 0x");
       Serial.println(outLRC, HEX);
-#endif      
+#endif
       // Bike tag
       if(rfid2_exist)
       {
@@ -710,9 +664,9 @@ void sendStatus(boolean _flag)
           Serial.println(outBytes[outIDX], HEX);
           Serial.print("LRC = 0x");
           Serial.println(outLRC, HEX);
-#endif      
+#endif
         }
-        // Member tag ต้องมี Bike tag ด้วย
+        // Member tag ��ͧ�� Bike tag ����
         mbSent = false;
         if(rfid1_exist)
         {
@@ -729,7 +683,7 @@ void sendStatus(boolean _flag)
             Serial.println(outBytes[outIDX], HEX);
             Serial.print("LRC = 0x");
             Serial.println(outLRC, HEX);
-#endif      
+#endif
           }
           mbSent = true;
         }
@@ -746,7 +700,7 @@ void sendStatus(boolean _flag)
       Serial.println(outBytes[outIDX], HEX);
       Serial.print("LRC = 0x");
       Serial.println(outLRC, HEX);
-#endif      
+#endif
       // LRC
       outIDX++;
       outBytes[outIDX] = outLRC;
@@ -757,14 +711,15 @@ void sendStatus(boolean _flag)
       Serial.println(outBytes[outIDX], HEX);
       Serial.print("LRC = 0x");
       Serial.println(outLRC, HEX);
-#endif      
+#endif
       outIDX++;
       Serial.write(outBytes, outIDX);
       taskACK_CNT = 0; // Reset ack time out counter
       ACK_state = -4;
-      dataSending = true;      
+      dataSending = true;
     }
   }
 }
  */
+
 
