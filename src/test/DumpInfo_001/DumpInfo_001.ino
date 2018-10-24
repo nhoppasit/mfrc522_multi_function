@@ -100,7 +100,7 @@ void DumpMifareUltralightToSerial()
 	
 	Serial.println(F("Page  0  1  2  3"));
 	// Try the mpages of the original Ultralight. Ultralight C has more pages.
-	for (byte page = 0; page < 16; page +=4) { // Read returns data for 4 pages at a time.
+	for (byte page = 0; page < 45; page +=4) { // Read returns data for 4 pages at a time.
 		// Read pages
 		byteCount = sizeof(buffer);
 		status = rfid.MIFARE_Read(page, buffer, &byteCount);
@@ -133,7 +133,7 @@ void DumpMifareUltralightToSerial()
 	
 	Serial.println(F("Page  0  1  2  3"));
 	// Try the mpages of the original Ultralight. Ultralight C has more pages.
-	for (byte page = 0; page < 16; page +=4) { // Read returns data for 4 pages at a time.
+	for (byte page = 0; page < 45; page +=4) { // Read returns data for 4 pages at a time.
 		// Read pages
 		byteCount = sizeof(buffer);
 		status = rfid.MIFARE_Read(page, buffer, &byteCount);
