@@ -39,6 +39,8 @@
 #define RST_PIN         5          // Configurable, see typical pin layout above
 #define SS_PIN          53         // Configurable, see typical pin layout above
 
+#define MAX_PAGE 45
+
 MFRC522 rfid(SS_PIN, RST_PIN);  // Create MFRC522 instance
 
 void setup()
@@ -110,7 +112,7 @@ void DumpMifareUltralightToSerial()
 	byte i;
 	
 	// Try the mpages of the original Ultralight. Ultralight C has more pages.
-	for (byte page = 4; page < 13; page +=4) { // Read returns data for 4 pages at a time.
+	for (byte page = 4; page < MAX_PAGE; page +=4) { // Read returns data for 4 pages at a time.
 		// Read pages
 		byteCount = sizeof(buffer);
 		status = rfid.MIFARE_Read(page, buffer, &byteCount);		
@@ -131,7 +133,7 @@ void DumpMifareUltralightToSerial()
 				i = page + offset;
 				// Serial.print(F("page = "));
 				// Serial.println(i);
-				if(i<=13) // page
+				if(i<=MAX_PAGE) // page
 				{
 					for (byte index = 0; index < 4; index++) 
 					{
