@@ -17,8 +17,9 @@
 /*--------------------------------------------------------------------------------------
  DEFINES
  --------------------------------------------------------------------------------------*/
-#define MAX_DATA_SIZE 64 // Serial data size
-#define HEADER_SIZE 18
+#define MAX_DATA_SIZE 	64 // Serial data size
+#define HEADER_SIZE 	18
+#define MAX_ELEMENTS 	8
 //
 #define STX 0x02 // Start text charactor
 #define SEP 0x1C // Field separator charactor
@@ -526,13 +527,22 @@ void serialReceive()
 			else if(20<=byteIndex && (byteIndex-1)<=LLLL) // Field Data
 			{
 				int idx = byteIndex - 20;
-				fieldData[idx] = inByte;
-				LRC = LRC^fieldData[idx];
+				if(idx<MAX_DATA_SIZE) 
+				{
+					fieldData[idx] = inByte;
+					LRC = LRC^fieldData[idx];
 #if TEST_LOGIC<PRINT_LOG
-				Serial.print("Field data [");
-				Serial.print(idx);
-				Serial.print("] = 0x");
-				Serial.println(fieldData[idx], HEX);
+					Serial.print("Field data [");
+					Serial.print(idx);
+					Serial.print("] = 0x");
+					Serial.println(fieldData[idx], HEX);
+#endif
+				}
+#if TEST_LOGIC<PRINT_LOG
+				else
+				{
+					Serial.println("Field data out of range!");
+				}
 #endif
 			}  
 			// -------------------------------------------------------
@@ -659,14 +669,24 @@ void validateResponse(boolean _flag)
 void evaluateFieldData(boolean flag)
 {
 	int dataLen = LLLL-HEADER_SIZE;
+	int fieldIdx = 0;
+	char elementFieldType[MAX_ELEMENTS];
+	int elementLLLL[MAX_ELEMENTS];	
+	elementLLLL[0] = 0;
 	if(flag)
 	{
 #if TEST_LOGIC<PRINT_LOG
 		Serial.print("Evaluate field data of ");		
 		Serial.print(dataLen);
 		Serial.println(" bytes.");
-#endif      
-		
+#endif      		
+		for(int i=0;i<dataLen;i++)
+		{
+			if(MAX_DATA_SIZE<=i) break;			
+			if(i<dataLen)			
+			elementLLLL[fieldIdx]++;
+			if(fieldData[i]==SEP){fieldIdx++; elementLLLL[fieldIdx]=0;}
+		}
 	}
 }
 // ----------------------------------------------------------------------
