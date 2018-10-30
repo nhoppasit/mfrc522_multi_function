@@ -4,6 +4,7 @@
 #define TEST_LOGIC 0
 #define PRINT_TIME 0
 #define PRINT_LOG 1
+#define PRINT_BYTE_COUNT 1
 #define PRINT_LOG_ACK 0
 #define SET_BLINK false
 //
@@ -407,9 +408,9 @@ void serialReceive()
 		{      
 			taskCLRDR_CNT = 0; // Clear task when data comming. If wrong length, it increses.
 			//
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("byteIndex = ");
-				Serial.println(byteIndex);
+#if TEST_LOGIC<PRINT_BYTE_COUNT
+				Serial.print("Byte count = ");
+				Serial.println(byteIndex-1);
 #endif			
 			//
 			if(0<=byteIndex && byteIndex<=1) // LLLL ...................
@@ -524,7 +525,7 @@ void serialReceive()
 			//
 			//
 			// ------------------- FIELD ELEMENT ----------------------
-			else if(19<byteIndex && byteIndex<LLLL+20) // Data ...................
+			else if(20<=byteIndex && (byteIndex-2)<LLLL) // Data ...................
 			{
 				int idx = byteIndex - 20;
 				dataBytes[idx] = inByte;
@@ -538,12 +539,8 @@ void serialReceive()
 			}  
 			//
 			//
-			else if(byteIndex==LLLL+20) // ETX ...................
+			else if((byteIndex-2)==LLLL) // ETX ...................
 			{
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("Byte index = ");
-				Serial.println(byteIndex);
-#endif
 				if(inByte==ETX) // ETX came. <--- Good : go ahead
 				{
 					LRC = LRC^ETX;
@@ -562,7 +559,7 @@ void serialReceive()
 					sendNAK();
 				}               
 			}
-			else if(byteIndex==LLLL+21) // Incoming LRC ...................
+			else if((byteIndex-2)==LLLL+1) // Incoming LRC ...................
 			{
 				if(LRC==inByte) // LRC commited. <--- Good : go ahead
 				{
@@ -588,9 +585,8 @@ void serialReceive()
 					clearReceiving();
 					sendNAK();
 				}
-			}     
-			//
-			if(LLLL<(byteIndex-1))
+			}     			
+			else if(LLLL+1<(byteIndex-2))
 			{
 #if TEST_LOGIC<PRINT_LOG
 				Serial.println("Message length failed.");
