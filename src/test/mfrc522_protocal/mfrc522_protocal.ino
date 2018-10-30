@@ -519,15 +519,14 @@ void serialReceive()
 				{
 					Serial.println("SEP came.");
 				}
-#endif				
-				
+#endif								
 			}			
 			//
 			//
 			// ------------------- FIELD ELEMENT ----------------------
 			else if(19<byteIndex && byteIndex<LLLL+20) // Data ...................
 			{
-				int idx = byteIndex - 2;
+				int idx = byteIndex - 20;
 				dataBytes[idx] = inByte;
 				LRC = LRC^dataBytes[idx];
 #if TEST_LOGIC<PRINT_LOG
