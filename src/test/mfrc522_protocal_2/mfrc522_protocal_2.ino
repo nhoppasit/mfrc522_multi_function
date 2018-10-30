@@ -2,11 +2,9 @@
  CODE CONTROL
  --------------------------------------------------------------------------------------*/
 #define TEST_LOGIC 0
-#define PRINT_TIME 0
 #define PRINT_LOG 1
 #define PRINT_BYTE_COUNT 0
-#define PRINT_LOG_ACK 0
-#define SET_BLINK false
+#define PRINT_INCOMING_BYTE 0
 //
 /*--------------------------------------------------------------------------------------
  INCLUDE
@@ -328,8 +326,8 @@ void serialReceive()
 	if (Serial.available() > 0) // if we get a valid byte, go ahead:
 	{    
 		inByte = Serial.read(); // get incoming byte:
-#if TEST_LOGIC<PRINT_LOG
-		Serial.print("In-byte = 0x");
+#if TEST_LOGIC<PRINT_INCOMING_BYTE
+		Serial.print("Incoming-byte = 0x");
 		Serial.println(inByte, HEX);
 #endif
 		//
