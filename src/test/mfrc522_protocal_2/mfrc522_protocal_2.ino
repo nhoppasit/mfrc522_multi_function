@@ -18,6 +18,7 @@
  DEFINES
  --------------------------------------------------------------------------------------*/
 #define MAX_DATA_SIZE 64 // Serial data size
+#define HEADER_SIZE 18
 //
 #define STX 0x02 // Start text charactor
 #define SEP 0x1C // Field separator charactor
@@ -132,6 +133,7 @@ void loop()
 	// Message validation functions
 	validateTxType(dataReceived);
 	validateTxDest(dataReceived);
+	evaluateFieldData(dataReceived && HEADER_SIZE<LLLL);
 	validateResponse(dataReceived);
 	//
 	// Serial respond functions
@@ -656,8 +658,14 @@ void validateResponse(boolean _flag)
 }
 void evaluateFieldData(boolean flag)
 {
+	int dataLen = LLLL-HEADER_SIZE;
 	if(flag)
 	{
+#if TEST_LOGIC<PRINT_LOG
+		Serial.print("Evaluate field data of ");		
+		Serial.print(dataLen);
+		Serial.println(" bytes.");
+#endif      
 		
 	}
 }
