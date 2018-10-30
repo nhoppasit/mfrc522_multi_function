@@ -518,19 +518,7 @@ void serialReceive()
 			}			
 			//
 			//
-			/* //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-			else if(byteIndex==1) // LLLL ...................
-			{
-				LLLL = inByte;
-				LRC = LRC^LLLL;
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("LLLL = ");
-				Serial.println(LLLL);
-				Serial.print("LRC = 0x");
-				Serial.println(LRC, HEX);
-#endif
-			} */  
-			
+			// ------------------- FIELD ELEMENT ----------------------
 			else if(19<byteIndex && byteIndex<LLLL+20) // Data ...................
 			{
 				int idx = byteIndex - 2;
@@ -543,6 +531,8 @@ void serialReceive()
 				Serial.println(dataBytes[idx], HEX);
 #endif
 			}  
+			//
+			//
 			else if(byteIndex==LLLL+20) // ETX ...................
 			{
 #if TEST_LOGIC<PRINT_LOG
@@ -603,7 +593,7 @@ void serialReceive()
 }
 //
 // .......................................................................................
-// Message execute
+// Message validation
 // .......................................................................................
 //
 void validateTxType(boolean _flag)
@@ -659,8 +649,10 @@ void validateResponse(boolean _flag)
 	}
 }
 // ----------------------------------------------------------------------
-// RETURN FUNCTIONS
+// RESPONSE FUNCTIONS
 // ----------------------------------------------------------------------
+//
+// Generic query
 void sendGenericQuery(boolean _flag)
 {
   if(_flag)
