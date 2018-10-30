@@ -27,11 +27,14 @@
 #define NAK 0x15 // Non-acknowlage
 #define BIZ 0xBC // Busy!
 //
-// Field type meaning
-#define MASTER_CONTACT   '?'   // '?' = 0x3F : Send slot status.
-#define APPROVED_CMD     '$'   // '$' = 0x24 : Rental command = Approved + Credit balance.
-#define REJECTED_CMD     0xCE  // 0xCE : Rental command = Rejected
-#define INVALID_CMD      0xD6  // 0xD6 : Rental command = Invalid
+// Transaction code [2-BYTE] meaning
+#define GENERIC_QUERY_1      '?'   // '?' = 0x3F : Send general status.
+#define GENERIC_QUERY_2      '?'   
+//
+// Field type [2-BYTE] meaning
+#define GENERIC_AGRUMENT_1   'G'   // '?' = 0x3F : Send slot status.
+#define GENERIC_AGRUMENT_2   'A'   // '?' = 0x3F : Send slot status.
+//
 //
 // CPU tick
 #define INTERVAL         50 // ms
@@ -41,10 +44,20 @@
 #define TIME_CLEAR_DR  1000 // ms
 #define TIME_ACK       1000 // ms
 //
-// Device number
-const char txType[] = "MF";
-const char txDest[] = "0001";
-const char txSource[] = "0000";
+// Application code
+#define TX_TYPE_1		'M'  // MIRROR FOUNDATION: MF
+#define TX_TYPE_2		'F'  
+//
+// Device code
+#define TX_DESTINATION_1		'0'  // TRANSACTION DESTINATION: 0001
+#define TX_DESTINATION_2		'0'  
+#define TX_DESTINATION_3		'0'  
+#define TX_DESTINATION_4		'1'  
+//
+// RESPONSE
+#define NEED_RESPONSE		'0' // require a response
+#define A_RESPONSE			'1' // response 
+#define NOT_RESPONSE		'2' // not response
 //
 /*--------------------------------------------------------------------------------------
  VARIABLES
@@ -116,12 +129,15 @@ void loop()
 	// --- Communication timed tasks -------------------------  
 	taskACKTime(tick_state && dataSending);
 	taskCLRDR(tick_state && dataReceived);
+	taskCLRDR(tick_state && dataComing);
 	//
-	// Serial respond functions
-	// sendStatus(dataReceived); // ข้อมูลใน incoming buffer ถูกล้างด้วย
+	// Message validation functions
 	validateTxType(dataReceived);
 	validateTxDest(dataReceived);
+	validateResponse(dataReceived);
 	//
+	// Serial respond functions
+	sendGenericQuery(dataReceived); // ข้อมูลใน incoming buffer ถูกล้างด้วย
 }
 //
 //
@@ -388,6 +404,8 @@ void serialReceive()
 		// ------------------------------------
 		if(dataComing)
 		{      
+			taskCLRDR_CNT = 0; // Clear task when data comming. If wrong length, it increses.
+			
 			if(0<=byteIndex && byteIndex<=1) // LLLL ...................
 			{
 				if(byteIndex==0) LLLL = inByte*10;
@@ -460,9 +478,9 @@ void serialReceive()
 				Serial.println(transactionCode[byteIndex-14]);
 #endif
 			}
-			else if(16<=byteIndex && byteIndex<=15) // responseCode: Presentation header response Code ...................
+			else if(16<=byteIndex && byteIndex<=17) // responseCode: Presentation header response Code ...................
 			{     
-				responseCode[byteIndex-14] = (char)inByte;
+				responseCode[byteIndex-16] = (char)inByte;
 				LRC = LRC^inByte;
 #if TEST_LOGIC<PRINT_LOG
 				Serial.print("Response Code[");
@@ -480,12 +498,8 @@ void serialReceive()
 				Serial.println(moreIndicator);
 #endif
 			}
-			else if(19==byteIndex) // moreIndicator: Presentation header more indicator  ...................
+			else if(19==byteIndex) // Field separator: Presentation header field separator  ...................
 			{     
-#if TEST_LOGIC<PRINT_LOG
-				Serial.print("Field separator = ");
-				Serial.println(inByte);
-#endif
 				if(inByte!=SEP) // SEP failed!
 				{
 #if TEST_LOGIC<PRINT_LOG
@@ -494,6 +508,13 @@ void serialReceive()
 					clearReceiving();
 					sendNAK();
 				}     
+#if TEST_LOGIC<PRINT_LOG
+				else
+				{
+					Serial.println("SEP came.");
+				}
+#endif				
+				
 			}			
 			//
 			//
@@ -589,8 +610,8 @@ void validateTxType(boolean _flag)
 {
 	if(_flag)
 	{		
-		if(!(transType[0]==txType[0] && 
-			 transType[1]==txType[1])) 
+		if(!(transType[0]==TX_TYPE_1 && 
+			 transType[1]==TX_TYPE_2)) 
 		{
 			clearReceiving();
 #if TEST_LOGIC<PRINT_LOG
@@ -604,10 +625,10 @@ void validateTxDest(boolean _flag)
 {
 	if(_flag)
 	{		
-		if(!(transDestination[0]==txDest[0] && 
-			 transDestination[1]==txDest[1] && 
-			 transDestination[2]==txDest[2] && 
-			 transDestination[3]==txDest[3])) 
+		if(!(transDestination[0]==TX_DESTINATION_1 && 
+			 transDestination[1]==TX_DESTINATION_2 && 
+			 transDestination[2]==TX_DESTINATION_3 && 
+			 transDestination[3]==TX_DESTINATION_4)) 
 		{
 			clearReceiving();
 #if TEST_LOGIC<PRINT_LOG
@@ -617,13 +638,35 @@ void validateTxDest(boolean _flag)
 		}
 	}
 }
-//
-/* // ส่งสถานะ
-void sendStatus(boolean _flag)
+void validateResponse(boolean _flag)
+{
+	if(_flag)
+	{		
+		if(responseIndicator==NOT_RESPONSE) 
+		{
+			clearReceiving();
+#if TEST_LOGIC<PRINT_LOG
+			Serial.println("This message is a request message which does not require a response.");
+#endif      
+		}
+		if(responseIndicator==A_RESPONSE) 
+		{
+			clearReceiving();
+#if TEST_LOGIC<PRINT_LOG
+			Serial.println("This message is a response message.");
+#endif      
+		}
+	}
+}
+// ----------------------------------------------------------------------
+// RETURN FUNCTIONS
+// ----------------------------------------------------------------------
+void sendGenericQuery(boolean _flag)
 {
   if(_flag)
   {
-    if(fieldType==MASTER_CONTACT)
+    if(transactionCode[0]==GENERIC_QUERY_1 && transactionCode[0]==GENERIC_QUERY_2 &&
+		responseIndicator==NEED_RESPONSE)
     {
       //      
       clearReceiving();
@@ -631,7 +674,7 @@ void sendStatus(boolean _flag)
       outLRC = 0x00;
       // SLOT number
       outIDX = 0; 
-      outBytes[outIDX] = SLOT_NBR;
+      outBytes[outIDX] = TX_DESTINATION_1;
       outLRC = outLRC^outBytes[outIDX];
 #if TEST_LOGIC<PRINT_LOG
       Serial.print("outBytes[");
@@ -655,7 +698,7 @@ void sendStatus(boolean _flag)
 #endif      
       // '?' : Status
       outIDX++;
-      outBytes[outIDX] = MASTER_CONTACT;
+      outBytes[outIDX] = GENERIC_QUERY_1;
       outLRC = outLRC^outBytes[outIDX];
 #if TEST_LOGIC<PRINT_LOG
       Serial.print("outBytes[");
@@ -668,10 +711,10 @@ void sendStatus(boolean _flag)
       // LLLL
       outIDX++;
       outBytes[outIDX] = 1;
-      if(rfid2_exist) // Bike tag
+      if(1) // Bike tag
       { 
         outBytes[outIDX] = outBytes[outIDX] + 5; // Bike tag
-        if(rfid1_exist) 
+        if(1) 
           outBytes[outIDX] = outBytes[outIDX] + 5; // Member tag ต้องมีข้อมูล Bike Tag ด้วย       
       }
       outLRC = outLRC^outBytes[outIDX];
@@ -685,7 +728,7 @@ void sendStatus(boolean _flag)
 #endif      
       // Byte sensor
       outIDX++;
-      outBytes[outIDX] = sensorByte;
+      outBytes[outIDX] = '1';
       outLRC = outLRC^outBytes[outIDX];
 #if TEST_LOGIC<PRINT_LOG
       Serial.print("outBytes[");
@@ -696,12 +739,12 @@ void sendStatus(boolean _flag)
       Serial.println(outLRC, HEX);
 #endif      
       // Bike tag
-      if(rfid2_exist)
+      if(1)
       {
         for(int itag=0;itag<5;itag++)
         {
           outIDX++;
-          outBytes[outIDX] = bikeTag[itag];
+          outBytes[outIDX] = 'X';
           outLRC = outLRC^outBytes[outIDX];
 #if TEST_LOGIC<PRINT_LOG
           Serial.print("outBytes[");
@@ -713,13 +756,12 @@ void sendStatus(boolean _flag)
 #endif      
         }
         // Member tag ต้องมี Bike tag ด้วย
-        mbSent = false;
-        if(rfid1_exist)
+        if(1)
         {
           for(int itag=0;itag<5;itag++)
           {
             outIDX++;
-            outBytes[outIDX] = mbTag[itag];
+            outBytes[outIDX] = 'Y';
             outLRC = outLRC^outBytes[outIDX];
 
 #if TEST_LOGIC<PRINT_LOG
@@ -731,7 +773,6 @@ void sendStatus(boolean _flag)
             Serial.println(outLRC, HEX);
 #endif      
           }
-          mbSent = true;
         }
       }
       //
@@ -766,5 +807,5 @@ void sendStatus(boolean _flag)
     }
   }
 }
- */
+
 
