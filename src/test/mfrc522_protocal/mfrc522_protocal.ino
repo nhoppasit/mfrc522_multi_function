@@ -4,7 +4,7 @@
 #define TEST_LOGIC 0
 #define PRINT_TIME 0
 #define PRINT_LOG 1
-#define PRINT_BYTE_COUNT 1
+#define PRINT_BYTE_COUNT 0
 #define PRINT_LOG_ACK 0
 #define SET_BLINK false
 //
@@ -423,7 +423,7 @@ void serialReceive()
 				Serial.println(LLLL);
 #endif
 			} 
-			else if(2<=byteIndex && byteIndex<=3 && (byteIndex-2)<LLLL) // transType: Transport header type ...................
+			else if(2<=byteIndex && byteIndex<=3 && (byteIndex-1)<=LLLL) // transType: Transport header type ...................
 			{     
 				transType[byteIndex-2] = (char)inByte;
 				LRC = LRC^inByte;
@@ -434,7 +434,7 @@ void serialReceive()
 				Serial.println(transType[byteIndex-2]);
 #endif
 			}
-			else if(4<=byteIndex && byteIndex<=7 && (byteIndex-2)<LLLL) // transDestination: Transport destination ...................
+			else if(4<=byteIndex && byteIndex<=7 && (byteIndex-1)<=LLLL) // transDestination: Transport destination ...................
 			{     
 				transDestination[byteIndex-4] = (char)inByte;
 				LRC = LRC^inByte;
@@ -445,7 +445,7 @@ void serialReceive()
 				Serial.println(transDestination[byteIndex-4]);
 #endif
 			}
-			else if(8<=byteIndex && byteIndex<=11 && (byteIndex-2)<LLLL) // transSource: Transport source ...................
+			else if(8<=byteIndex && byteIndex<=11 && (byteIndex-1)<=LLLL) // transSource: Transport source ...................
 			{     
 				transSource[byteIndex-8] = (char)inByte;
 				LRC = LRC^inByte;
@@ -456,7 +456,7 @@ void serialReceive()
 				Serial.println(transSource[byteIndex-8]);
 #endif
 			}
-			else if(12==byteIndex && (byteIndex-2)<LLLL) // formatVersion: Presentation header format version ...................
+			else if(12==byteIndex && (byteIndex-1)<=LLLL) // formatVersion: Presentation header format version ...................
 			{     
 				formatVersion = (char)inByte;
 				LRC = LRC^inByte;
@@ -465,7 +465,7 @@ void serialReceive()
 				Serial.println(formatVersion);
 #endif
 			}
-			else if(13==byteIndex && (byteIndex-2)<LLLL) // responseIndicator: Presentation header request-response indicator  ...................
+			else if(13==byteIndex && (byteIndex-1)<=LLLL) // responseIndicator: Presentation header request-response indicator  ...................
 			{     
 				responseIndicator = (char)inByte;
 				LRC = LRC^inByte;
@@ -474,7 +474,7 @@ void serialReceive()
 				Serial.println(responseIndicator);
 #endif
 			}
-			else if(14<=byteIndex && byteIndex<=15 && (byteIndex-2)<LLLL) // transactionCode: Presentation header transaction Code ...................
+			else if(14<=byteIndex && byteIndex<=15 && (byteIndex-1)<=LLLL) // transactionCode: Presentation header transaction Code ...................
 			{     
 				transactionCode[byteIndex-14] = (char)inByte;
 				LRC = LRC^inByte;
@@ -485,7 +485,7 @@ void serialReceive()
 				Serial.println(transactionCode[byteIndex-14]);
 #endif
 			}
-			else if(16<=byteIndex && byteIndex<=17 && (byteIndex-2)<LLLL) // responseCode: Presentation header response Code ...................
+			else if(16<=byteIndex && byteIndex<=17 && (byteIndex-1)<=LLLL) // responseCode: Presentation header response Code ...................
 			{     
 				responseCode[byteIndex-16] = (char)inByte;
 				LRC = LRC^inByte;
@@ -496,7 +496,7 @@ void serialReceive()
 				Serial.println(responseCode[byteIndex-16]);
 #endif
 			}
-			else if(18==byteIndex && (byteIndex-2)<LLLL) // moreIndicator: Presentation header more indicator  ...................
+			else if(18==byteIndex && (byteIndex-1)<=LLLL) // moreIndicator: Presentation header more indicator  ...................
 			{     
 				moreIndicator = (char)inByte;
 				LRC = LRC^inByte;
@@ -505,7 +505,7 @@ void serialReceive()
 				Serial.println(moreIndicator);
 #endif
 			}
-			else if(19==byteIndex && (byteIndex-2)<LLLL) // Field separator: Presentation header field separator  ...................
+			else if(19==byteIndex && (byteIndex-1)<=LLLL) // Field separator: Presentation header field separator  ...................
 			{     
 				if(inByte!=SEP) // SEP failed!
 				{
@@ -525,7 +525,7 @@ void serialReceive()
 			//
 			//
 			// ------------------- FIELD ELEMENT ----------------------
-			else if(20<=byteIndex && (byteIndex-2)<LLLL) // Data ...................
+			else if(20<=byteIndex && (byteIndex-1)<=LLLL) // Data ...................
 			{
 				int idx = byteIndex - 20;
 				dataBytes[idx] = inByte;
@@ -539,7 +539,7 @@ void serialReceive()
 			}  
 			//
 			//
-			else if((byteIndex-2)==LLLL) // ETX ...................
+			else if((byteIndex-1)==LLLL+1) // ETX ...................
 			{
 				if(inByte==ETX) // ETX came. <--- Good : go ahead
 				{
@@ -559,7 +559,7 @@ void serialReceive()
 					sendNAK();
 				}               
 			}
-			else if((byteIndex-2)==LLLL+1) // Incoming LRC ...................
+			else if((byteIndex-1)==LLLL+2) // Incoming LRC ...................
 			{
 				if(LRC==inByte) // LRC commited. <--- Good : go ahead
 				{
@@ -586,7 +586,7 @@ void serialReceive()
 					sendNAK();
 				}
 			}     			
-			else if(LLLL+1<(byteIndex-2))
+			else if(LLLL+2<(byteIndex-1))
 			{
 #if TEST_LOGIC<PRINT_LOG
 				Serial.println("Message length failed.");
