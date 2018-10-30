@@ -416,7 +416,7 @@ void serialReceive()
 				Serial.println(LLLL);
 #endif
 			} 
-			else if(2<=byteIndex && byteIndex<=3) // transType: Transport header type ...................
+			else if(2<=byteIndex && byteIndex<=3 && (byteIndex-2)<=LLLL) // transType: Transport header type ...................
 			{     
 				transType[byteIndex-2] = (char)inByte;
 				LRC = LRC^inByte;
@@ -427,7 +427,7 @@ void serialReceive()
 				Serial.println(transType[byteIndex-2]);
 #endif
 			}
-			else if(4<=byteIndex && byteIndex<=7) // transDestination: Transport destination ...................
+			else if(4<=byteIndex && byteIndex<=7 && (byteIndex-2)<=LLLL) // transDestination: Transport destination ...................
 			{     
 				transDestination[byteIndex-4] = (char)inByte;
 				LRC = LRC^inByte;
@@ -438,7 +438,7 @@ void serialReceive()
 				Serial.println(transDestination[byteIndex-4]);
 #endif
 			}
-			else if(8<=byteIndex && byteIndex<=11) // transSource: Transport source ...................
+			else if(8<=byteIndex && byteIndex<=11 && (byteIndex-2)<=LLLL) // transSource: Transport source ...................
 			{     
 				transSource[byteIndex-8] = (char)inByte;
 				LRC = LRC^inByte;
@@ -583,7 +583,15 @@ void serialReceive()
 					clearReceiving();
 					sendNAK();
 				}
-			}      
+			}     
+			else if(LLLL<(byteIndex-2))
+			{
+#if TEST_LOGIC<PRINT_LOG
+				Serial.println("Message length failed.");
+#endif
+				clearReceiving();
+				sendNAK();
+			}
 			// Update index and check its limit  ...................
 			byteIndex++;
 			if(byteIndex>MAX_DATA_SIZE) clearReceiving(); // Clear all controls
