@@ -43,7 +43,7 @@ void setup() {
 	mfrc522.PCD_Init(); // Init MFRC522 card
 	mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max); //Set Antenna Gain to Max- this will increase reading distance
 	Serial.println(F("Sketch has been started!"));
-	memcpy(buffer, "123456789123rty78901", 44);
+	memcpy(buffer, "12345678979700004901", 44);
 	buffer[0]  = 0x03; buffer[1]  = 0x0F; buffer[2]  = 0xD1; buffer[3]  = 0x01;
 	buffer[4]  = 0x0B; buffer[5]  = 0x54; buffer[6]  = 0x02; buffer[7]  = 0x65;
 	buffer[8]  = 0x6E; /* buffer[9]  = 0x37; buffer[10] = 0x39; buffer[11] = 0x37;
@@ -66,6 +66,7 @@ void loop() {
 	// Select one of the cards
 	if ( ! mfrc522.PICC_ReadCardSerial())
 		return;
+
 
 	// Write data ***********************************************
 	Serial.println(F("Writing data ... "));
