@@ -21,3 +21,26 @@ c:\users\dogbear\source\repos\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.presentation
 c:\users\dogbear\source\repos\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.presentation.xml
 c:\users\dogbear\source\repos\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.csproj.CopyComplete
 C:\Users\DogbeaR\source\repos\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.frmMain.resources
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\ScanQRCODE.exe.config
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\ScanQRCODE.exe
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\ScanQRCODE.pdb
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\AForge.dll
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\AForge.Video.DirectShow.dll
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\AForge.Video.dll
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.dll
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.presentation.dll
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\AForge.xml
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\AForge.Video.xml
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\AForge.Video.DirectShow.xml
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.pdb
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.xml
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.presentation.pdb
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\bin\Debug\zxing.presentation.xml
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.csprojResolveAssemblyReference.cache
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.frmMain.resources
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.Properties.Resources.resources
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.csproj.GenerateResource.cache
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.csproj.CoreCompileInputs.cache
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.csproj.CopyComplete
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.exe
+D:\git repo\mfrc522_multi_function\src\ScanQRCODE\ScanQRCODE\ScanQRCODE\obj\Debug\ScanQRCODE.pdb
