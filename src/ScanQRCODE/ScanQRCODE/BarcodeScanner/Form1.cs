@@ -46,14 +46,16 @@ namespace BarcodeScanner
         bool isAttached = false;
         private void btnOpen_Click(object sender, EventArgs e)
         {
-            FinalFrame = new VideoCaptureDevice(CaptureDevice[cboCamera.SelectedIndex].MonikerString);
             if (!isAttached)
             {
+                FinalFrame = new VideoCaptureDevice(CaptureDevice[cboCamera.SelectedIndex].MonikerString);
                 FinalFrame.NewFrame += FinalFrame_NewFrame;
                 isAttached = true;
             }
             FinalFrame.Start();
-
+            timer1.Enabled = false;
+            btnShow.Enabled = true;
+            btnShow.Focus();
         }
 
         private void FinalFrame_NewFrame(object sender, NewFrameEventArgs eventArgs)
@@ -65,6 +67,7 @@ namespace BarcodeScanner
         {
             timer1.Enabled = true;
             timer1.Start();
+            btnShow.Enabled = false;
         }
 
         private void timer1_Tick(object sender, EventArgs e)
@@ -80,14 +83,16 @@ namespace BarcodeScanner
                     if (MessageBox.Show(decoded + Environment.NewLine + "ต้องการเขียน NFC Tag ใช่หรือไม่ ?", "QR code", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                     {
                         // Write
-
+                        
                     }
+
                 }
+                btnShow.Enabled = true;
             }
             catch (Exception ex)
             {
 
-            }
+            }            
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)

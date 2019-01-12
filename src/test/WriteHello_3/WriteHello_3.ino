@@ -37,6 +37,12 @@ uint8_t pageAddr = 0x04;  //In this example we will write/read 16 bytes (page 6,
 //Ultraligth mem = 16 pages. 4 bytes per page.
 //Pages 0 to 4 are for special functions.
 
+int iByte = 0;
+bool stxCome = 0;
+bool etxCome = 0;
+int incomingByte = 0;
+byte snKey[3];
+
 void setup() {
 	Serial.begin(9600); // Initialize serial communications with the PC
 	SPI.begin(); // Init SPI bus
@@ -46,6 +52,54 @@ void setup() {
 }
 
 void loop() {
+	
+	// send data only when you receive data:
+	if (Serial.available() > 0) {
+		// read the incoming byte:
+		incomingByte = Serial.read();
+		
+		if(incomingByte==':') 
+		{
+			stxCome = 1;
+			etxCome = 0;
+			for(iByte=0;iByte<3;iByte++)
+				snKey[iByte] = 0x30;
+			iByte = 0;
+			Serial.println("STX come.");
+			return;
+		}
+
+		if(incomingByte=='#' || incomingByte==0x10 || incomingByte==0x0D)
+		{
+			etxCome = 1;
+			// say what you got:
+			Serial.print("I received: ");	
+			for(iByte=0;iByte<3;iByte++)
+				Serial.print(snKey[iByte]-0x30);
+			Serial.println(".");
+
+			Serial.println("ETX come.");
+			Serial.println();
+			Serial.println("Start write mode.");
+		}	
+		
+		if(stxCome==1 && etxCome==0)
+		{
+			if(iByte<3)
+			{
+				snKey[iByte] = incomingByte;
+				Serial.println(snKey[iByte], DEC);
+				Serial.flush();
+				iByte++;			
+			}
+		}	
+	}	
+	
+	if(etxCome==0)
+	{
+		return;
+	}			
+	
 	// Serial.println(F("Loop ... "));
 	// Look for new cards
 	if ( ! mfrc522.PICC_IsNewCardPresent())
@@ -68,6 +122,10 @@ void loop() {
 	buffer[32]  = 0x00; buffer[33]  = 0x00; buffer[34]  = 0x00; buffer[35]  = 0x00;
 	buffer[36]  = 0x00; buffer[37]  = 0x00; buffer[38]  = 0x00; buffer[39]  = 0x00;
 
+	/*buffer[9]  = snKey[0]; buffer[10] = snKey[1]; buffer[11] = snKey[2]; buffer[12] = snKey[3]; */
+	/*buffer[13] = snKey[4];*/ buffer[14] = snKey[0]; buffer[15] = snKey[1]; buffer[16] = snKey[2];
+	
+	
 	// Write data ***********************************************
 	Serial.println(F("Writing data ... "));
 	for (int i = 0; i < 10; i++) 
@@ -85,6 +143,8 @@ void loop() {
 	Serial.println(F("MIFARE_Ultralight_Write() OK "));
 	Serial.println();
 
+	stxCome = 0;
+	etxCome = 0;
 
 	// Read data ***************************************************
 	Serial.println(F("Reading data ... "));
@@ -107,4 +167,5 @@ void loop() {
 
 	mfrc522.PICC_HaltA();
 
+	Serial.println(F("CHECKED"));
 }
